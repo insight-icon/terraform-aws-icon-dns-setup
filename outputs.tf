@@ -1,7 +1,7 @@
-output "zone_id_private" {
+output "private_zone_id" {
   value = aws_route53_zone.region_private.zone_id
 }
 
-output "zone_id_public" {
+output "public_zone_id" {
   value = aws_route53_zone.region_public.zone_id
 }
