@@ -1,25 +1,73 @@
-resource "aws_route53_zone" "root" {
-  name = var.root_domain_name
+data "aws_region" "current" {}
+
+terraform {
+  required_version = ">= 0.12"
 }
 
-resource "aws_route53_zone" "region" {
-  name = join(".", [var.region, var.root_domain_name])
+locals {
+  public_domain = join(".", [data.aws_region.current.name, var.environment, var.root_domain_name])
+  private_domain = join(".", [data.aws_region.current.name, var.environment, var.internal_domain_name])
 
-  tags = {
-    Environment = "region"
+  common_tags = {
+    "Terraform" = true
+    "Environment" = var.environment
+    "Region" = data.aws_region.current.name
   }
+
+  tags = merge(var.tags, local.common_tags)
 }
 
-resource "aws_route53_record" "region-ns" {
-  zone_id = aws_route53_zone.root.zone_id
-  name    = join(".", [var.region, var.root_domain_name])
+resource "aws_route53_zone" "root_private" {
+  name = var.internal_domain_name
+}
+
+resource "aws_route53_zone" "region_private" {
+  name = local.private_domain
+
+  vpc {
+    vpc_id = var.vpc_id
+    vpc_region = data.aws_region.current.name
+  }
+
+  force_destroy = var.force_destroy
+
+  tags = local.tags
+}
+
+resource "aws_route53_record" "region_private" {
+  zone_id = aws_route53_zone.root_private.zone_id
+
+  name    = local.private_domain
   type    = "NS"
   ttl     = "30"
 
   records = [
-    aws_route53_zone.region.name_servers[0],
-    aws_route53_zone.region.name_servers[1],
-    aws_route53_zone.region.name_servers[2],
-    aws_route53_zone.region.name_servers[3],
+    aws_route53_zone.region_private.name_servers[0],
+    aws_route53_zone.region_private.name_servers[1],
+    aws_route53_zone.region_private.name_servers[2],
+    aws_route53_zone.region_private.name_servers[3],
+  ]
+}
+
+resource "aws_route53_zone" "region_public" {
+  name = local.public_domain
+
+  force_destroy = var.force_destroy
+
+  tags = local.tags
+}
+
+resource "aws_route53_record" "region_public" {
+  zone_id = var.zone_id
+
+  name    = local.public_domain
+  type    = "NS"
+  ttl     = "30"
+
+  records = [
+    aws_route53_zone.region_public.name_servers[0],
+    aws_route53_zone.region_public.name_servers[1],
+    aws_route53_zone.region_public.name_servers[2],
+    aws_route53_zone.region_public.name_servers[3],
   ]
 }
