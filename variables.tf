@@ -10,6 +10,12 @@ variable "name" {
 
 variable "vpc_id" {
   type = string
+  default = ""
+}
+
+variable "vpc_ids" {
+  type = list(string)
+  default = []
 }
 
 variable "zone_id" {
@@ -28,7 +34,6 @@ variable "root_domain_name" {
 
 variable "internal_domain_name" {
   description = "The domain name to use for internal dns"
-  default = "icon.internal"
   type = string
 }
 
