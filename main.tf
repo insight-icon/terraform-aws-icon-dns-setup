@@ -52,6 +52,11 @@ resource "aws_route53_record" "region_public" {
   records = [aws_route53_zone.region_public.name_servers[0], aws_route53_zone.region_public.name_servers[1], aws_route53_zone.region_public.name_servers[2], aws_route53_zone.region_public.name_servers[3],]
 }
 
+resource "aws_route53_zone_association" "secondary" {
+  zone_id = aws_route53_zone.root_private.zone_id
+  vpc_id  = var.vpc_id
+}
+
 //resource "aws_route53_zone" "region_private" {
 //  name = local.private_domain
 //
