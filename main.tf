@@ -5,15 +5,9 @@ terraform {
 }
 
 locals {
-  public_domain = join(".", [
-    data.aws_region.current.name,
-    var.environment,
-    var.root_domain_name])
+  public_domain = join(".", [data.aws_region.current.name, var.environment, var.root_domain_name])
 
-  private_domain = join(".", [
-    data.aws_region.current.name,
-    var.environment,
-    var.internal_domain_name])
+  private_domain = join(".", [data.aws_region.current.name, var.environment, var.internal_domain_name])
 
   common_tags = {
     "Terraform" = true
@@ -24,6 +18,9 @@ locals {
   tags = merge(var.tags, local.common_tags)
 }
 
+data "aws_route53_zone" "this" {
+  name = "${var.root_domain_name}."
+}
 
 resource "aws_route53_zone" "root_private" {
   name = var.internal_domain_name
@@ -35,6 +32,24 @@ resource "aws_route53_zone" "root_private" {
       vpc_region = "${data.aws_region.current.name}"
     }
   }
+}
+
+resource "aws_route53_zone" "region_public" {
+  name = local.public_domain
+
+  force_destroy = var.force_destroy
+
+  tags = local.tags
+}
+
+resource "aws_route53_record" "region_public" {
+  zone_id = var.zone_id == "" ? data.aws_route53_zone.this.id : var.zone_id
+
+  name = local.public_domain
+  type = "NS"
+  ttl = "30"
+
+  records = [aws_route53_zone.region_public.name_servers[0], aws_route53_zone.region_public.name_servers[1], aws_route53_zone.region_public.name_servers[2], aws_route53_zone.region_public.name_servers[3],]
 }
 
 //resource "aws_route53_zone" "region_private" {
@@ -77,25 +92,3 @@ resource "aws_route53_zone" "root_private" {
 //  ]
 //}
 
-resource "aws_route53_zone" "region_public" {
-  name = local.public_domain
-
-  force_destroy = var.force_destroy
-
-  tags = local.tags
-}
-
-resource "aws_route53_record" "region_public" {
-  zone_id = var.zone_id
-
-  name = local.public_domain
-  type = "NS"
-  ttl = "30"
-
-  records = [
-    aws_route53_zone.region_public.name_servers[0],
-    aws_route53_zone.region_public.name_servers[1],
-    aws_route53_zone.region_public.name_servers[2],
-    aws_route53_zone.region_public.name_servers[3],
-  ]
-}

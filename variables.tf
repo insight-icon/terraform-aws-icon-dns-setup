@@ -1,6 +1,7 @@
 
 variable "environment" {
   type = string
+  default = "dev"
 }
 
 variable "name" {
@@ -20,6 +21,7 @@ variable "vpc_ids" {
 
 variable "zone_id" {
   type = string
+  default = ""
 }
 
 variable "force_destroy" {
