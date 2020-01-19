@@ -10,6 +10,6 @@ output "private_zone_id" {
   value = aws_route53_zone.root_private.*.zone_id[0]
 }
 
-output "private_regional_zone_id" {
-  value = var.create_private_regional_subdomain ? aws_route53_zone.region_private.*.zone_id[0] : aws_route53_zone.root_private.zone_id
-}
+//output "private_regional_zone_id" {
+//  value = var.create_private_regional_subdomain ? aws_route53_zone.region_private.*.zone_id[0] : aws_route53_zone.root_private.zone_id
+//}
