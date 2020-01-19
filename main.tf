@@ -6,19 +6,11 @@ terraform {
 
 locals {
   public_domain = join(".", [data.aws_region.current.name, var.environment, var.root_domain_name])
-
-  private_domain = join(".", [data.aws_region.current.name, var.environment, var.internal_domain_name])
-
-  common_tags = {
-    "Terraform" = true
-    "Environment" = var.environment
-    "Region" = data.aws_region.current.name
-  }
-
-  tags = merge(var.tags, local.common_tags)
+//  private_domain = join(".", [data.aws_region.current.name, var.environment, var.internal_domain_name])
 }
 
 data "aws_route53_zone" "this" {
+  count = var.root_domain_name == "" ? 0 : 1
   name = "${var.root_domain_name}."
 }
 
@@ -29,35 +21,47 @@ resource "aws_route53_zone" "root_private" {
     for_each = var.vpc_ids
     content {
       vpc_id = vpc.value
-      vpc_region = "${data.aws_region.current.name}"
+      vpc_region = data.aws_region.current.name
     }
   }
+
+  tags = merge(var.tags, {"Region" = data.aws_region.current.name, "ZoneType" = "Private"})
 }
 
 resource "aws_route53_zone" "region_public" {
+  count = var.create_public_regional_subdomain ? 1 : 0
+
   name = local.public_domain
 
   force_destroy = var.force_destroy
 
-  tags = local.tags
+  tags = merge(var.tags, {"Region" = data.aws_region.current.name, "ZoneType" = "PublicRegion"})
 }
 
 resource "aws_route53_record" "region_public" {
-  zone_id = var.zone_id == "" ? data.aws_route53_zone.this.id : var.zone_id
+  count = var.create_public_regional_subdomain ? 1 : 0
+
+  zone_id = var.zone_id == "" ? data.aws_route53_zone.this.*.id[0] : var.zone_id
 
   name = local.public_domain
   type = "NS"
   ttl = "30"
 
-  records = [aws_route53_zone.region_public.name_servers[0], aws_route53_zone.region_public.name_servers[1], aws_route53_zone.region_public.name_servers[2], aws_route53_zone.region_public.name_servers[3],]
+  records = [
+    aws_route53_zone.region_public.*.name_servers.0[count.index],
+    aws_route53_zone.region_public.*.name_servers.1[count.index],
+    aws_route53_zone.region_public.*.name_servers.2[count.index],
+    aws_route53_zone.region_public.*.name_servers.3[count.index],
+  ]
 }
 
-resource "aws_route53_zone_association" "secondary" {
-  zone_id = aws_route53_zone.root_private.zone_id
-  vpc_id  = var.vpc_id
-}
+// TODO: If peering VPCs, then we might want to create private hosted zones per region.  Later include this logic maybe
+// For now, you can't associate the same VPC with two zones in the same namespace
+// https://www.reddit.com/r/aws/comments/aq6uzb/route53_vpc_association/
 
 //resource "aws_route53_zone" "region_private" {
+//  count = var.create_private_regional_subdomain ? 1 : 0
+//
 //  name = local.private_domain
 //
 ////  if you want to resolve the private hosted zone, there are two options, one is to associate the zone to the vpc,
@@ -68,21 +72,18 @@ resource "aws_route53_zone_association" "secondary" {
 //    for_each = var.vpc_ids
 //    content {
 //      vpc_id = vpc.value
-//      vpc_region = "${data.aws_region.current.name}"
+//      vpc_region = data.aws_region.current.name
 //    }
 //  }
 //
-////  vpc {
-////    vpc_id = var.vpc_id
-////    vpc_region = data.aws_region.current.name
-////  }
-//
 //  force_destroy = var.force_destroy
 //
-//  tags = local.tags
+//  tags = merge(var.tags, {"Region" = data.aws_region.current.name, "ZoneType" = "PrivateRegion"})
 //}
-
+//
 //resource "aws_route53_record" "region_private" {
+//  count = var.create_private_regional_subdomain ? 1 : 0
+//
 //  zone_id = aws_route53_zone.root_private.zone_id
 //
 //  name = local.private_domain
@@ -90,10 +91,16 @@ resource "aws_route53_zone_association" "secondary" {
 //  ttl = "30"
 //
 //  records = [
-//    aws_route53_zone.region_private.name_servers[0],
-//    aws_route53_zone.region_private.name_servers[1],
-//    aws_route53_zone.region_private.name_servers[2],
-//    aws_route53_zone.region_private.name_servers[3],
+//    aws_route53_zone.region_private.*.name_servers.0[count.index],
+//    aws_route53_zone.region_private.*.name_servers.1[count.index],
+//    aws_route53_zone.region_private.*.name_servers.2[count.index],
+//    aws_route53_zone.region_private.*.name_servers.3[count.index],
 //  ]
+//
+////  records = [
+////    aws_route53_zone.region_private.name_servers[0],
+////    aws_route53_zone.region_private.name_servers[1],
+////    aws_route53_zone.region_private.name_servers[2],
+////    aws_route53_zone.region_private.name_servers[3],
+////  ]
 //}
-
