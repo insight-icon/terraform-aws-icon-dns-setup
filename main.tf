@@ -47,7 +47,14 @@ resource "aws_route53_record" "region_public" {
   type = "NS"
   ttl = "30"
 
-  records = [aws_route53_zone.region_public.name_servers[0], aws_route53_zone.region_public.name_servers[1], aws_route53_zone.region_public.name_servers[2], aws_route53_zone.region_public.name_servers[3],]
+  records = [
+    aws_route53_zone.region_public.*.name_servers.0[count.index],
+    aws_route53_zone.region_public.*.name_servers.1[count.index],
+    aws_route53_zone.region_public.*.name_servers.2[count.index],
+    aws_route53_zone.region_public.*.name_servers.3[count.index],
+  ]
+
+//  records = [aws_route53_zone.region_public.name_servers[0], aws_route53_zone.region_public.*.name_servers[1], aws_route53_zone.region_public.name_servers[2], aws_route53_zone.region_public.name_servers[3],]
 }
 
 
@@ -83,9 +90,16 @@ resource "aws_route53_record" "region_private" {
   ttl = "30"
 
   records = [
-    aws_route53_zone.region_private.name_servers[0],
-    aws_route53_zone.region_private.name_servers[1],
-    aws_route53_zone.region_private.name_servers[2],
-    aws_route53_zone.region_private.name_servers[3],
+    aws_route53_zone.region_private.*.name_servers.0[count.index],
+    aws_route53_zone.region_private.*.name_servers.1[count.index],
+    aws_route53_zone.region_private.*.name_servers.2[count.index],
+    aws_route53_zone.region_private.*.name_servers.3[count.index],
   ]
+
+//  records = [
+//    aws_route53_zone.region_private.name_servers[0],
+//    aws_route53_zone.region_private.name_servers[1],
+//    aws_route53_zone.region_private.name_servers[2],
+//    aws_route53_zone.region_private.name_servers[3],
+//  ]
 }
