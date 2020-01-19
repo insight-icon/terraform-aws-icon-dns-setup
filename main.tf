@@ -24,6 +24,8 @@ resource "aws_route53_zone" "root_private" {
       vpc_region = data.aws_region.current.name
     }
   }
+
+  tags = merge(var.tags, {"Region" = data.aws_region.current.name, "ZoneType" = "Private"})
 }
 
 resource "aws_route53_zone" "region_public" {
@@ -33,7 +35,7 @@ resource "aws_route53_zone" "region_public" {
 
   force_destroy = var.force_destroy
 
-  tags = merge(var.tags, {"Region" = data.aws_region.current.name})
+  tags = merge(var.tags, {"Region" = data.aws_region.current.name, "ZoneType" = "PublicRegion"})
 }
 
 resource "aws_route53_record" "region_public" {
@@ -68,7 +70,7 @@ resource "aws_route53_zone" "region_private" {
 
   force_destroy = var.force_destroy
 
-  tags = merge(var.tags, {"Region" = data.aws_region.current.name})
+  tags = merge(var.tags, {"Region" = data.aws_region.current.name, "ZoneType" = "PrivateRegion"})
 }
 
 resource "aws_route53_record" "region_private" {
