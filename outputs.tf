@@ -1,5 +1,5 @@
 output "root_zone_id" {
-  value = var.root_domain_name == "" ? data.aws_route53_zone.this.*.zone_id[0] : ""
+  value = var.root_domain_name == "" ? "" : data.aws_route53_zone.this.*.zone_id[0]
 }
 
 output "public_regional_zone_id" {
